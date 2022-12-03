@@ -299,31 +299,38 @@ class sex:
 		self.prefs_expanded = not self.prefs_expanded
 
 
-	# flgs_add and flgs_subtract take an array of integers which represent flag values
+	# evaluate flags into a single integer represented as bytes
+	# current_flgs = bytes or int STRICTLY
+	def eval_flags(self, current_flags, flgs_add=[], flgs_subtract=[]):
+		if not isinstance(current_flags, int):
+			current_flags = int.from_bytes(current_flags, sys.byteorder)
+
+		# subtract flags
+		# todo: what do these c++ operators actually do ??
+		for subtr in flgs_subtract:
+			current_flags &= ~subtr
+
+		# add flags
+		for add_flg in flgs_add:
+			current_flags |= add_flg
+
+		# return byte representation of the result
+		return current_flags.to_bytes(4, sys.byteorder)
+
+
+	# modify a physical VTF file on a disk
 	def mod_vtf(self, vtfpath, flgs_add=[], flgs_subtract=[]):
 		with open(str(vtfpath), 'r+b') as vtf_file:
-			# flags are stored in the 21st byte of the vtf file
+			# flags are stored in a 4-byte integer starting at 20th byte
 			# move the cursor there
 			vtf_file.seek(20, 0)
-			# read the byte containing vtf flags as an int
-			current_flags = int.from_bytes(vtf_file.read(1), sys.byteorder)
+			# evaluate new flags
+			new_flags = self.eval_flags(vtf_file.read(4), flgs_add, flgs_subtract)
 
-			print('got flags', current_flags)
-
-			# subtract flags
-			# todo: what do these c++ operators actually do ??
-			for subtr in flgs_subtract:
-				current_flags &= ~subtr
-
-			# add flags
-			for add_flg in flgs_add:
-				current_flags |= add_flg
-
-			# move the cursor 1 byte back to overwrite the flags byte with the new value
+			# move the cursor back and overwrite old flags with the new ones
 			vtf_file.seek(20, 0)
 			# overwrite the thing
-			vtf_file.write(current_flags.to_bytes(4, sys.byteorder))
-			# vtf_file.write(bytes.fromhex(hex(current_flags)[2:]))
+			vtf_file.write(new_flags)
 
 
 	# unpack bsp cubemaps into a certain location
@@ -337,17 +344,11 @@ class sex:
 		tmp_path = Path(tmp_path)
 		bsp_path = Path(bsp_path)
 
-		unpack_prms = [
-			# bspzip executable
-			str(bspzip),
-			'-extractcubemaps',
-			str(bsp_path),
-			str(tmp_path)
-		]
-
-		waiting = None
-		with subprocess.Popen(unpack_prms, stdout=subprocess.PIPE, bufsize=10**8, cwd=str(game_dir)) as unpack_pipe:
-			waiting = unpack_pipe.stdout.read()
+		#
+		# extract stuff with zip files, because extracting it with bspzip kills cubemap vtfs
+		#
+		with ZipFile(str(bsp_path), 'r') as unz:
+			unz.extractall(path=str(tmp_path))
 
 
 		#
@@ -360,21 +361,51 @@ class sex:
 			str(bsp_path)
 		]
 
-		# subprocess.call(delcubes, cwd=str(game_dir))
-
-		waiting = None
-		with subprocess.Popen(delcubes, stdout=subprocess.PIPE, bufsize=10**8, cwd=str(game_dir)) as unpack_pipe:
-			waiting = unpack_pipe.stdout.read()
-
-
+		subprocess.call(delcubes, cwd=str(game_dir))
 
 		print('getting all vtfs from', (tmp_path / 'materials' / 'maps' / bsp_path.stem))
 
-		return [mat for mat in (tmp_path / 'materials' / 'maps' / bsp_path.stem).glob('*.vtf')]
+		return (
+			[mat for mat in (tmp_path / 'materials' / 'maps' / bsp_path.stem).glob('*.vtf')],
+			[allf for allf in (tmp_path / 'materials' / 'maps' / bsp_path.stem).rglob('*')]
+		)
+
+
+	# modify the bsp WITHOUT unpacking it or anything
+	def mod_bsp_binary(self, bsp_path, flgs_add=[], flgs_subtract=[], lowram=False):
+		with open(str(bsp_path), 'rb') as bsp:
+			# read the contents of the bsp
+			# todo: ram-efficient mode where it reads the file in chunks
+			bsp_content = bsp.read()
+
+			# lookup VTF offsets
+			vtf_offs = 0
+			# store tuples where:
+			# 0 = Flag offset of the VTF
+			# 1 = current flags as bytes
+			vtf_matches = []
+			while True:
+				try:
+					found = bsp_content.index('VTF\0'.encode(), vtf_offs, len(bsp_content))
+					vtf_matches.append((found + 20, bsp_content[found+20:found+20+4]))
+					vtf_offs = found + 4
+				except:
+					break
+
+
+		# actually modify the file
+		with open(str(bsp_path), 'r+b') as mod_bsp:
+			for vtf_offs in vtf_matches:
+				mod_bsp.seek(vtf_offs[0], 0)
+				cur_flags = mod_bsp.read(4)
+				mod_bsp.seek(vtf_offs[0], 0)
+				mod_bsp.write(self.eval_flags(cur_flags, flgs_add, flgs_subtract))
+
+
 
 
 	# the thing which does sex, basically
-	def exec_sex(self):
+	def exec_sex_old(self):
 		print('bsp directory val:', self.bsp_files.get())
 
 		# grab .bsp files from here
@@ -447,6 +478,43 @@ class sex:
 			# delete all the temp vtf files
 			shutil.rmtree(str(tmpdir))
 			tmpdir.mkdir(exist_ok=True)
+
+
+
+
+	# the thing which does sex, basically
+	def exec_sex(self):
+		print('bsp directory val:', self.bsp_files.get())
+
+		# grab .bsp files from here
+		tgt_dir = Path(self.bsp_files.get().strip().strip('"').strip())
+		# this is required, because bspzip relies on this...
+		game_folder = Path(self.game_folder.get().strip().strip('"').strip())
+		# bspzip executable
+		bspzip_exe = Path(self.bspzip_folder.get().strip().strip('"').strip()) / 'bspzip.exe'
+
+		# ensure that the temp dir exists
+		# for now just silently create it as a sibling
+		# tmpdir = (game_folder / 'temp_delete_me')
+		# tmpdir.mkdir(exist_ok=True)
+
+		# collapse flag pool in gui
+		if self.flagpool_expanded:
+			self.cbframe.pack_forget()
+			self.flagpool_expanded = False
+
+		# create an array of flags to add/subtract
+		add_flags = [flag_dict.get(fl.get()) for fl in self.cb_flags_add if flag_dict.get(fl.get()) != None]
+		rm_flags = [flag_dict.get(rmfl.get()) for rmfl in self.cb_flags_remove if flag_dict.get(rmfl.get()) != None]
+
+		# process every map
+		for bsp in tgt_dir.glob('*.bsp'):
+			self.mod_bsp_binary(bsp, add_flags, rm_flags)
+
+
+
+
+
 
 
 # launch app
