@@ -1,4 +1,4 @@
-import customtkinter, tkinter, subprocess, shutil, sys, os
+import customtkinter, tkinter, subprocess, shutil, sys, os, asyncio, threading
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -49,8 +49,8 @@ customtkinter.set_default_color_theme('blue')
 # create the app frame
 root = customtkinter.CTk()
 # set initial height/width
-root.geometry('650x950')
-root.minsize(650, 800)
+root.geometry('650x850')
+root.minsize(650, 100)
 # set name
 root.title('Chuck Norris')
 
@@ -77,6 +77,7 @@ frame = customtkinter.CTkFrame(master=root)
 frame.pack(pady=10, padx=10, fill='both', expand=True)
 
 # SCROLLBARS ?!
+# SCROLLBARS WHEN ?!
 # ctk_textbox_scrollbar = customtkinter.CTkScrollbar(frame)
 # ctk_textbox_scrollbar.pack()
 
@@ -124,7 +125,9 @@ def test():
 # ==============================================
 
 class sex:
-	def __init__(self):
+	def __init__(self, assloop):
+
+		self.asc_loop = assloop
 
 		#
 		# Collapse/Expand preferences, because scrollbars are borken
@@ -152,47 +155,58 @@ class sex:
 
 
 		# bspzip folder
-		customtkinter.CTkLabel(
-			master=self.config_section,
-			# wraplength=500,
-			justify='left',
-			text="""Path to the folder containing bspzip""",
-			font=('', 16)
-		).pack(pady=5, padx=10, anchor='w')
+		# customtkinter.CTkLabel(
+		# 	master=self.config_section,
+		# 	# wraplength=500,
+		# 	justify='left',
+		# 	text="""Path to the folder containing bspzip""",
+		# 	font=('', 16)
+		# ).pack(pady=5, padx=10, anchor='w')
 		self.bspzip_folder = customtkinter.CTkEntry(master=self.config_section, placeholder_text='Bspzip folder')
-		self.bspzip_folder.pack(pady=0, padx=10, fill='both')
+		# self.bspzip_folder.pack(pady=0, padx=10, fill='both')
 
 
 		# game folder (what the fuck ???)
-		customtkinter.CTkLabel(
-			master=self.config_section,
-			wraplength=500,
-			justify='left',
-			text="""Path to the folder containing gameinfo. Yes, what the fuck? I don't know... It has to be a game within the engine you're using your bspzip from.""",
-			font=('', 16)
-		).pack(pady=5, padx=10, anchor='w')
+		# customtkinter.CTkLabel(
+		# 	master=self.config_section,
+		# 	wraplength=500,
+		# 	justify='left',
+		# 	text="""Path to the folder containing gameinfo. Yes, what the fuck? I don't know... It has to be a game within the engine you're using your bspzip from.""",
+		# 	font=('', 16)
+		# ).pack(pady=5, padx=10, anchor='w')
 		self.game_folder = customtkinter.CTkEntry(master=self.config_section, placeholder_text='Game folder')
-		self.game_folder.pack(pady=0, padx=10, fill='both')
+		# self.game_folder.pack(pady=0, padx=10, fill='both')
 
 
 
 		#
 		# Button to SEX!
 		#
-		button = customtkinter.CTkButton(
+		self.button = customtkinter.CTkButton(
 			master=frame,
 			width=120,
 			height=32,
 			border_width=0,
 			corner_radius=8,
 			text='SEX!',
-			command=self.exec_sex
+			# command=self.exec_sex
+			# self.asc_loop
+			command=lambda:self.exec_sex(async_loop)
 		)
 		# button.pack(relx=0.5, rely=0.5, anchor=tkinter.CENTER)
-		button.pack(pady=10, padx=10, fill='both')
+		self.button.pack(pady=10, padx=10, fill='both')
 
+		self.progressbar = customtkinter.CTkProgressBar(
+			master=frame
+			# mode='indeterminate'
+		)
+		self.progressbar.pack(padx=20, pady=10, fill='x')
+		# self.progressbar.configure(
+		# 	_from=0,
+		# 	to=100
+		# )
 
-
+		self.progressbar.set(0)
 
 		#
 		# Collapse/Expand checkbox pool, because scrollbars are weird and broken
@@ -298,6 +312,8 @@ class sex:
 
 		self.prefs_expanded = not self.prefs_expanded
 
+	def upd_progress(self, progr):
+		pass
 
 	# evaluate flags into a single integer represented as bytes
 	# current_flgs = bytes or int STRICTLY
@@ -481,9 +497,10 @@ class sex:
 
 
 
-
 	# the thing which does sex, basically
-	def exec_sex(self):
+	async def exec_sex_ass(self):
+		# lock the button
+		self.button.configure(state='disabled')
 		print('bsp directory val:', self.bsp_files.get())
 
 		# grab .bsp files from here
@@ -499,23 +516,36 @@ class sex:
 		# tmpdir.mkdir(exist_ok=True)
 
 		# collapse flag pool in gui
-		if self.flagpool_expanded:
-			self.cbframe.pack_forget()
-			self.flagpool_expanded = False
+		# if self.flagpool_expanded:
+		# 	self.cbframe.pack_forget()
+		# 	self.flagpool_expanded = False
 
 		# create an array of flags to add/subtract
 		add_flags = [flag_dict.get(fl.get()) for fl in self.cb_flags_add if flag_dict.get(fl.get()) != None]
 		rm_flags = [flag_dict.get(rmfl.get()) for rmfl in self.cb_flags_remove if flag_dict.get(rmfl.get()) != None]
 
 		# process every map
-		for bsp in tgt_dir.glob('*.bsp'):
+		all_maps = [mp for mp in tgt_dir.glob('*.bsp')]
+		for bsp_idx, bsp in enumerate(all_maps):
+			self.progressbar.set((bsp_idx+1) / len(all_maps))
 			self.mod_bsp_binary(bsp, add_flags, rm_flags)
 
 
+		self.button.configure(state='normal')
 
 
 
 
+	def thread_tgt(self, ascloop):
+		ascloop.run_until_complete(self.exec_sex_ass())
+
+
+	def exec_sex(self, loop):
+		threading.Thread(target=self.thread_tgt, args=(loop,)).start()
+
+
+
+async_loop = asyncio.get_event_loop()
 
 # launch app
-app = sex()
+app = sex(async_loop)
