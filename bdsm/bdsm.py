@@ -47,7 +47,7 @@ flag_dict = {
 class flagger:
 	"""Mass flag vtfs inside a bsp"""
 	def __init__(self):
-		self.tgt_path = Path(sys.argv[1])
+		self.tgt_path = Path(sys.argv[1].strip('"'))
 
 		maps = []
 

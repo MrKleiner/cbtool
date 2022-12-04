@@ -17,7 +17,7 @@ if len(sys.argv) <= 1:
 	sys.exit()
 
 
-
+print(sys.argv[1].strip(''))
 		
 
 
