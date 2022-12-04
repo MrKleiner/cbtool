@@ -59,8 +59,9 @@ class flagger:
 		if self.tgt_path.is_file():
 			maps = [self.tgt_path]
 
-		print('There are no maps to process...')
-		print('Make sure that the path is wrapped in quotation marks ("")')
+		if len(maps) <= 0:
+			print('There are no maps to process...')
+			print('Make sure that the path is wrapped in quotation marks ("")')
 		
 
 		for bsp_idx, bsp in enumerate(maps):
