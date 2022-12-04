@@ -3,11 +3,21 @@ from pathlib import Path
 
 # bros never forget bros
 
-if len(sys.argv) <= 1:
-	print('Missing a required argument: Path to the folder containing BSP files')
+
+def usage_example():
 	print('Usage:')
-	print('Open windows cmd in the same directory and then type')
-	print('bdsm.exe "PATH TO THE FOLDER WITH BSP FILES OR A SINGLE BSP FILE"')
+	print('bdsm.exe <-show_flags | path to the folder containing bsp files | path to a single bsp file> <flag array to ADD : Default to 0x0400> <flag array to SUBTRACT : Default to NONE>')
+	print('-show_flags : Print available flags that can be added/removed')
+	print('\tbdsm.exe -show_flags')
+	print('Flag arrays have to be comma separated with NO WHITESPACES:')
+	print('\tbdsm.exe "C:\\Team Fortress 2\\tf\\maps" 16777216,1024 4,8,16')
+	print('\tbdsm.exe "C:\\Team Fortress 2\\tf\\maps\\pl_pisswater.bsp" 16777216,1024 4,8,16')
+	print("""It's possible to skip flag addition, just put comma (,) instead of the flags""")
+	print('\tbdsm.exe "C:\\Team Fortress 2\\tf\\maps\\pl_pisswater.bsp" , 16777216,8')
+
+
+if len(sys.argv) <= 1:
+	usage_example()
 	sys.exit()
 
 
@@ -47,9 +57,30 @@ flag_dict = {
 class flagger:
 	"""Mass flag vtfs inside a bsp"""
 	def __init__(self):
-		self.tgt_path = Path(sys.argv[1].strip('"'))
+
+		try:
+			self.tgt_path = Path(sys.argv[1].strip('"'))
+		except Exception as e:
+			usage_example()
 
 		maps = []
+
+		if sys.argv[1].strip('"').lower() == '-show_flags':
+			# print(sys.argv)
+			for flg in flag_dict:
+				# ljust 43
+				print(flg.ljust(43), flag_dict[flg])
+			sys.exit()
+
+		try:
+			add_f = [int(adf) for adf in sys.argv[2].strip('"').strip(',').lower().split(',')]
+		except Exception as e:
+			add_f = [flag_dict['No Minimum Mipmap']]
+
+		try:
+			del_f = [int(rmf) for rmf in sys.argv[3].strip('"').strip(',').lower().split(',')]
+		except Exception as e:
+			del_f = []
 
 		if self.tgt_path.is_dir():
 			# print('The specified path is either not a directory or does not exist at all')
@@ -66,7 +97,7 @@ class flagger:
 
 		for bsp_idx, bsp in enumerate(maps):
 			try:
-				self.mod_bsp_binary(bsp)
+				self.mod_bsp_binary(bsp, add_f, del_f)
 				self.set_progress(bsp_idx+1, len(maps))
 			except Exception as e:
 				print('An error occured...')
@@ -92,7 +123,7 @@ class flagger:
 		return current_flags.to_bytes(4, sys.byteorder)
 
 
-	def mod_bsp_binary(self, bsp_path):
+	def mod_bsp_binary(self, bsp_path, add_flags=[flag_dict['No Minimum Mipmap']], remove_flags=[]):
 		with open(str(bsp_path), 'rb') as bsp:
 			# read the contents of the bsp
 			# todo: ram-efficient mode where it reads the file in chunks
@@ -119,7 +150,7 @@ class flagger:
 				mod_bsp.seek(vtf_offs[0], 0)
 				cur_flags = mod_bsp.read(4)
 				mod_bsp.seek(vtf_offs[0], 0)
-				mod_bsp.write(self.eval_flags(cur_flags, [flag_dict['No Minimum Mipmap']], []))
+				mod_bsp.write(self.eval_flags(cur_flags, add_flags, remove_flags))
 
 
 	def set_progress(self, current, total):
