@@ -13,7 +13,7 @@ cmpileprms = [
 	# '--windowed',
 	'--console',
 	'--icon',
-	'E:/!webdesign/cbtool/doubt.ico',
+	str(project / 'bdsm' / 'icon' / 'enginer.ico'),
 	# add icon file
 	# '--add-data', str(project / 'doubt.ico;.'),
 	# some critical custom tkinter shit
