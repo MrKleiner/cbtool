@@ -1,4 +1,4 @@
-![img](cubemap%20tool.png)
+![img](cubemap_tool.png)
 
 # [CLICK HERE TO DOWNLOAD](https://github.com/MrKleiner/cbtool/releases)
 
