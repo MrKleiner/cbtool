@@ -1,6 +1,6 @@
 ![img](cubemap_tool.png)
 
-# [CLICK HERE TO DOWNLOAD](https://github.com/MrKleiner/cbtool/releases)
+# [CLICK HERE TO DOWNLOAD](https://github.com/MrKleiner/cbtool/releases/latest)
 
 ## WHY:
 
@@ -30,12 +30,12 @@ Select the "No Minimal Mipmap" flag in the LEFT column, paste in the path
 (IMPORTANT: CTRL+V works only if the english keyboard is active),
 and press the "SEX!" button (yes, seriously).
 
-Wait until it finishes, it will close the tab with all the flags, signalling that it's done.
+Wait until it finishes, observe the progress bar.
 All affected BSP's should have a new "last modified" date on them.
 
 2. BDSM: Better Dual Source Mapping (I have no clue, don't ask)
 The BDSM (tool) is exactly the same thing, except it's a command line version of the tool, 
-that's injected into the hammer compile pipeline, as the very last thing.
+that's injected into the hammer compile pipeline, as the very last thing (could also be used as a standalone tool).
 
 The idea here is to hit the compile button, and leave for tea, or other tasks that do not involve the devil's box.
 Grab a snack! Do a few push ups! Touch grass! Start a fami-
@@ -61,7 +61,7 @@ After it's done, the game will close autonomously.
 
 * -autocubemap for UC will always compile only the HDR cubemaps, no matter the settings. This is not the case for Map Labs.
 * -buildcubemaps does not have such functionality, which means cubemaps have to be built for all modes separately.
-* The tool works by detecting a .hdr.vtf in the filename, which results in the tool not flagging the LDR cubemaps. Sorry!
+* The tool is using "advanced algorithms" (lmao) to detect HDR cubemaps. There's also an option to force-process every single VTF file in the bsp file, just in case.
 * Low Mip levels (high roughness) have very noticable borders. This is not fixable, without divine intervention (Engine Code and Black Magic).
 * You can reverse the flags by picking what you need to remove in the RIGHT column, in the GUI tool.
 
@@ -71,9 +71,9 @@ After it's done, the game will close autonomously.
 # CREDITS:
 
 ```
-Mr.Kleiner:		Creating the tools
-White_Red_Dragons:	Discovering the flag solution
-roman_memes:		Discovering the issue, testing the tool, developing the workflow, writing this readme
+Mr.Kleiner:         Creating the tools
+White_Red_Dragons:  Discovering the flag solution
+roman_memes:        Discovering the issue, testing the tool, developing the workflow, writing this readme
 ```
 
 
