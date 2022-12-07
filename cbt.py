@@ -1,6 +1,7 @@
 import customtkinter, tkinter, subprocess, shutil, sys, os, asyncio, threading
 from pathlib import Path
-from zipfile import ZipFile
+from lightstruct import lightstruct
+# from zipfile import ZipFile
 
 flag_dict = {
 	'Point Sampling':                               0x0001,
@@ -31,6 +32,36 @@ flag_dict = {
 	'Vertex Texture':                               0x4000000,
 	'SSBump':                                       0x8000000,
 	'Border':                                       0x20000000
+}
+
+format_dict = {
+	'RGBA8888',
+	'ABGR8888',
+	'RGB888',
+	'BGR888',
+	'RGB565',
+	'I8',
+	'IA88',
+	'P8',
+	'A8',
+	'RGB888_BLUESCREEN',
+	'BGR888_BLUESCREEN',
+	'ARGB8888',
+	'BGRA8888',
+	'DXT1',
+	'DXT3',
+	'DXT5',
+	'BGRX8888',
+	'BGR565',
+	'BGRX5551',
+	'BGRA4444',
+	'DXT1_ONEBITALPHA',
+	'BGRA5551',
+	'UV88',
+	'UVWQ8888',
+	'RGBA16161616F',
+	'RGBA16161616',
+	'UVLX8888'
 }
 
 
@@ -84,41 +115,6 @@ frame.pack(pady=10, padx=10, fill='both', expand=True)
 
 
 
-# ==============================================
-#                      TEST
-# ==============================================
-def login(vr='DED'):
-	print('Test', vr)
-
-def test():
-	frame = customtkinter.CTkFrame(master=root)
-	frame.pack(pady=20, padx=60, fill='both', expand=True)
-
-	label = customtkinter.CTkLabel(master=frame, text='Login System')
-	label.pack(pady=12, padx=10)
-
-	entry1 = customtkinter.CTkEntry(master=frame, placeholder_text='username')
-	entry1.pack(pady=12, padx=10)
-
-	entry2 = customtkinter.CTkEntry(master=frame, placeholder_text='password', show='*')
-	entry2.pack(pady=12, padx=10)
-
-
-	button = customtkinter.CTkButton(master=frame, text='Login', command=login)
-	button.pack(pady=12, padx=10)
-
-	checkbox = customtkinter.CTkCheckBox(master=frame, text='remember Me')
-	checkbox.pack(pady=12, padx=10)
-
-	root.mainloop()
-
-
-
-
-
-
-
-
 
 # ==============================================
 #           Basically the app itself
@@ -149,9 +145,35 @@ class sex:
 		self.config_section.pack(pady=0, padx=5, fill='x')
 
 		# folder with bsp files
-		customtkinter.CTkLabel(master=self.config_section, text='Folder containing bsp files to fix', font=('', 16)).pack(pady=2, padx=10, anchor='w')
+		customtkinter.CTkLabel(master=self.config_section, text='Folder containing bsp files to fix OR a single .bsp file', font=('', 16)).pack(pady=2, padx=10, anchor='w')
 		self.bsp_files = customtkinter.CTkEntry(master=self.config_section, placeholder_text='Folder containing bsp files to fix')
 		self.bsp_files.pack(pady=0, padx=10, fill='both')
+
+
+		#
+		# Whether to flag every single VTF in a bsp or not
+		#
+		self.vtf_force = tkinter.StringVar()
+		self.vtf_force.set('no')
+
+		vtf_force_checkbox = customtkinter.CTkCheckBox(
+			master=self.config_section,
+			text='Flag every single VTF in the bsp and dont only target PBR cubemaps',
+			# height=5,
+			border_width=1,
+			corner_radius=4,
+			checkbox_width=17,
+			checkbox_height=17,
+			font=('', 12),
+
+			variable=self.vtf_force,
+			onvalue='yes',
+			offvalue='no'
+		)
+		vtf_force_checkbox.pack(pady=10, padx=10, anchor='w')
+
+
+
 
 
 		# bspzip folder
@@ -331,7 +353,8 @@ class sex:
 			current_flags |= add_flg
 
 		# return byte representation of the result
-		return current_flags.to_bytes(4, sys.byteorder)
+		# return current_flags.to_bytes(4, sys.byteorder)
+		return current_flags
 
 
 	# modify a physical VTF file on a disk
@@ -388,7 +411,7 @@ class sex:
 
 
 	# modify the bsp WITHOUT unpacking it or anything
-	def mod_bsp_binary(self, bsp_path, flgs_add=[], flgs_subtract=[], lowram=False):
+	def mod_bsp_binary(self, bsp_path, add_flags=[], remove_flags=[]):
 		with open(str(bsp_path), 'rb') as bsp:
 			# read the contents of the bsp
 			# todo: ram-efficient mode where it reads the file in chunks
@@ -403,19 +426,41 @@ class sex:
 			while True:
 				try:
 					found = bsp_content.index('VTF\0'.encode(), vtf_offs, len(bsp_content))
-					vtf_matches.append((found + 20, bsp_content[found+20:found+20+4]))
+					# vtf_matches.append((found + 20, bsp_content[found+20:found+20+4]))
+					vtf_matches.append(found)
 					vtf_offs = found + 4
 				except:
 					break
 
-
 		# actually modify the file
 		with open(str(bsp_path), 'r+b') as mod_bsp:
+			lstruct_ref = lightstruct(
+				mod_bsp,
+				signature =            (str, 4),
+				version =              (int, 2),
+				headerSize =           (int, 1),
+				width =                ('short', 1),
+				height =               ('short', 1),
+				flags =                (int, 1),
+				frames =               ('short', 1),
+				firstFrame =           ('short', 1),
+				padding0 =             (str, 4),
+				reflectivity =         (float, 3),
+				padding1 =             (str, 4),
+				bumpmapScale =         (float, 1),
+				highResImageFormat =   (int, 1)
+			)
 			for vtf_offs in vtf_matches:
-				mod_bsp.seek(vtf_offs[0], 0)
-				cur_flags = mod_bsp.read(4)
-				mod_bsp.seek(vtf_offs[0], 0)
-				mod_bsp.write(self.eval_flags(cur_flags, flgs_add, flgs_subtract))
+				# mod_bsp.seek(vtf_offs[0], 0)
+				# cur_flags = mod_bsp.read(4)
+				# mod_bsp.seek(vtf_offs[0], 0)
+				# mod_bsp.write(self.eval_flags(cur_flags, add_flags, remove_flags))
+				lstruct_ref.global_offs(vtf_offs)
+				cur_flags = lstruct_ref['flags'][0]
+				# only apply this to HDR vtfs which are also cubemaps
+				if lstruct_ref['highResImageFormat'][0] == 24 and self.eval_flags(cur_flags, [0x4000], []) == cur_flags or self.vtf_force.get() == 'yes':
+					# print('do apply')
+					lstruct_ref['flags'] = (self.eval_flags(cur_flags, add_flags, remove_flags),)
 
 
 
@@ -525,7 +570,10 @@ class sex:
 		rm_flags = [flag_dict.get(rmfl.get()) for rmfl in self.cb_flags_remove if flag_dict.get(rmfl.get()) != None]
 
 		# process every map
-		all_maps = [mp for mp in tgt_dir.glob('*.bsp')]
+		if tgt_dir.is_dir():
+			all_maps = [mp for mp in tgt_dir.glob('*.bsp') if mp.is_file()]
+		else:
+			all_maps = [tgt_dir]
 		for bsp_idx, bsp in enumerate(all_maps):
 			self.progressbar.set((bsp_idx+1) / len(all_maps))
 			self.mod_bsp_binary(bsp, add_flags, rm_flags)

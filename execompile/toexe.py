@@ -3,6 +3,16 @@ from pathlib import Path
 
 project = Path(__file__).parent.parent
 
+freshstruct = Path(r'E:\!webdesign\bootlegger\bootlegger\lightstruct.py')
+
+if freshstruct.is_file():
+	shutil.copyfile(str(freshstruct), str(project / 'lightstruct.py'))
+else:
+	from urllib.request import urlopen
+	with urlopen('https://raw.githubusercontent.com/MrKleiner/bootlegger/main/lightstruct.py') as response:
+	    litestruct = response.read()
+	    (project / 'lightstruct.py').write_bytes(litestruct)
+
 cmpileprms = [
 	# str(project / 'app'/ 'src' / 'bins' / 'python' / 'bin' / 'python.exe'),
 	'py',
