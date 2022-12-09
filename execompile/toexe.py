@@ -26,7 +26,7 @@ cmpileprms = [
 	# add icon file
 	'--add-data', str(project / 'doubt.ico;.'),
 	# some critical custom tkinter shit
-	'--add-data', str(Path(sys.executable).parents[1] / 'Lib/site-packages/customtkinter;customtkinter/') + '/',
+	'--add-data', str(Path(sys.executable).parent / 'Lib/site-packages/customtkinter;customtkinter/') + '/',
 	str(project / 'cbt.py')
 ]
 
