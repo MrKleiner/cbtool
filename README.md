@@ -5,7 +5,7 @@
 ## WHY:
 
 Physically Based Rendering shader implementations that utilize cubemaps as their main source of specular
-(thexa4, and all derrived works [Momentum Mod, Urban Chaos, Jabroni Brawl, etc.]), rely on cubemap mipmaps to simulate varying roughness levels.
+(thexa4, and all derrived works [Urban Chaos, Jabroni Brawl, etc.]), rely on cubemap mipmaps to simulate varying roughness levels.
 However, Source hard-caps the mipmap levels at 32x32, not loading anything below.
 This behaviour is avoidable by using a VTF flag, "No Minimum Mipmap".
 
