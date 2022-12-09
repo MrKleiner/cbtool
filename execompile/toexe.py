@@ -22,12 +22,11 @@ cmpileprms = [
 	'--onefile',
 	'--windowed',
 	# '--console',
-	'--icon',
-	'E:/!webdesign/cbtool/doubt.ico',
+	'--icon', str(project / 'doubt.ico'),
 	# add icon file
 	'--add-data', str(project / 'doubt.ico;.'),
 	# some critical custom tkinter shit
-	'--add-data', 'C:/Users/DrHax/AppData/Local/Programs/Python/Python310/Lib/site-packages/customtkinter;customtkinter/',
+	'--add-data', str(Path(sys.executable).parents[1] / 'Lib/site-packages/customtkinter;customtkinter/') + '/',
 	str(project / 'cbt.py')
 ]
 
