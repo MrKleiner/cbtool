@@ -2,7 +2,6 @@ import sys, os
 from pathlib import Path
 from lightstruct import lightstruct
 
-
 # bros never forget bros
 
 
@@ -113,10 +112,13 @@ class flagger:
 		try:
 			add_f = [int(adf) for adf in sys.argv[2].strip('"').strip(',').lower().split(',')]
 		except Exception as e:
-			if not sys.argv[2].strip('"').strip() == ',':
-				add_f = [flag_dict['No Minimum Mipmap']]
+			if len(sys.argv) > 2:
+				if not sys.argv[2].strip('"').strip() == ',':
+					add_f = [flag_dict['No Minimum Mipmap']]
+				else:
+					add_f=[]
 			else:
-				add_f=[]
+				add_f = [flag_dict['No Minimum Mipmap']]
 
 		try:
 			del_f = [int(rmf) for rmf in sys.argv[3].strip('"').strip(',').lower().split(',')]
@@ -221,6 +223,7 @@ class flagger:
 		gui = 50
 
 		os.system('cls')
+		print(sys.version)
 		progress = current / total
 
 		filled = int(gui * progress)
