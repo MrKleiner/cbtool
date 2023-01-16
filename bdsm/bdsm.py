@@ -32,7 +32,7 @@ flag_dict = {
 	'Clamp T':                                      0x0008,
 	'Anisotropic Sampling':                         0x0010,
 	'Hint DXT5':                                    0x0020,
-	'PWL Corrected':                                0x0040,
+	# PWL correction was removed, because its purpose is unknown and it had the same value as No Compress
 	'No Compress':                                  0x0040,
 	'Normal Map':                                   0x0080,
 	'No Mipmaps':                                   0x0100,
@@ -56,88 +56,130 @@ flag_dict = {
 	'Border':                                       0x20000000
 }
 
-format_dict = {
-	'RGBA8888',
+format_dict = [
+	'A8',
 	'ABGR8888',
-	'RGB888',
+	'ARGB8888',
+	'BGR565',
 	'BGR888',
-	'RGB565',
+	'BGR888_BLUESCREEN',
+	'BGRA4444',
+	'BGRA5551',
+	'BGRA8888',
+	'BGRX5551',
+	'BGRX8888',
+	'DXT1',
+	'DXT1_ONEBITALPHA',
+	'DXT3',
+	'DXT5',
 	'I8',
 	'IA88',
 	'P8',
-	'A8',
+	'RGB565',
+	'RGB888',
 	'RGB888_BLUESCREEN',
-	'BGR888_BLUESCREEN',
-	'ARGB8888',
-	'BGRA8888',
-	'DXT1',
-	'DXT3',
-	'DXT5',
-	'BGRX8888',
-	'BGR565',
-	'BGRX5551',
-	'BGRA4444',
-	'DXT1_ONEBITALPHA',
-	'BGRA5551',
-	'UV88',
-	'UVWQ8888',
-	'RGBA16161616F',
 	'RGBA16161616',
-	'UVLX8888'
-}
+	'RGBA16161616F',
+	'RGBA8888',
+	'UV88',
+	'UVLX8888',
+	'UVWQ8888'
+]
 
 class flagger:
 	"""Mass flag vtfs inside a bsp"""
 	def __init__(self):
 		self.force_mod = False
 
+		# bros never forget bros:
+		# the init is huge, only because this script uses a legacy python version compatible with windows 7
+		# which doesn't has the match keyword
+
+
+		# the -force argument could be present anywhere
+		# because it's then deleted from the argument array and therefore does not interfere
+		# with further argument evaluation
 		if '-force' in sys.argv:
 			self.force_mod = True
 			del sys.argv[sys.argv.index('-force')]
 
+		# if the first argument is not a valid path (aka not present)
+		# then quit and print usage example
+		# this allows printing the usage example when the script is called raw with no arguments
 		try:
 			self.tgt_path = Path(sys.argv[1].strip('"'))
 		except Exception as e:
 			usage_example()
 
-		maps = []
-
+		# if the first argument is -show_flags
+		# then quit and pring the flags dict
 		if sys.argv[1].strip('"').lower() == '-show_flags':
 			# print(sys.argv)
 			for flg in flag_dict:
-				# ljust 43
 				print(flg.ljust(43), flag_dict[flg])
 			sys.exit()
 
+
+		# at this point, the first argument should be the path to the file/folder
+		# and following two arguments (second and third) have to be the flag arrays
+		# (this section is responsible for evaluating the addition flags aka the second argument)
+		# (the second argument is always the addition array, a comma has to be passed to skip the addition)
 		try:
+			# get rid of rubbish, split the argument by comma and try evaluating each element as an int
 			add_f = [int(adf) for adf in sys.argv[2].strip('"').strip(',').lower().split(',')]
 		except Exception as e:
+			# exception = nothing is present / invalid argument. 
+			# Fall back to the default action (adding 'No Minimum Mipmap' flag)
+
+			# exception also occurs if the second element is just a comma
+			# in this case, check if it's actually a comma or something invalid
+			# ALSO, if it's a comma without the thrid argument - fall back to default (add 'No Minimum Mipmap' flag)
 			if len(sys.argv) > 2:
-				if not sys.argv[2].strip('"').strip() == ',':
+				# at this point, if the second argument is present, but it's neither a valid flag array or a comma - 
+				# fall back to default (add 'No Minimum Mipmap')
+				if sys.argv[2].strip('"').strip() != ',':
 					add_f = [flag_dict['No Minimum Mipmap']]
 				else:
-					add_f=[]
+					# but if it's a comma, then nothing should be added
+					add_f = []
 			else:
+				# whatever the second argument is, the third argument (subtraction) is not present.
+				# Fall back to default (add 'No Minimum Mipmap' flag)
 				add_f = [flag_dict['No Minimum Mipmap']]
 
+		# The third argument (the subtraction array) is either valid or skipped
 		try:
 			del_f = [int(rmf) for rmf in sys.argv[3].strip('"').strip(',').lower().split(',')]
 		except Exception as e:
 			del_f = []
 
+
+		#
+		# Now get all the paths to the maps
+		#
+
+		# all the paths are put into the maps array
+		# even if it's a path to a single file
+		maps = []
+
+		# if the first argument is a path to a folder - glob all .bsp files
 		if self.tgt_path.is_dir():
-			# print('The specified path is either not a directory or does not exist at all')
-			# sys.exit()
 			maps = [mp for mp in self.tgt_path.glob('*.bsp')]
 
+		# if the first argument is a path to a single file - put this map into the map paths array
 		if self.tgt_path.is_file():
 			maps = [self.tgt_path]
 
+		# this happens when the first argument either points to a folder with no .bsp files,
+		# or to a non-existent file
+		# in this case display an error and quit
 		if len(maps) <= 0:
 			print('There are no maps to process...')
 			print('Make sure that the path is wrapped in quotation marks ("")')
-		
+			sys.exit()
 
+
+		# go through every map path and do stuff with it
 		for bsp_idx, bsp in enumerate(maps):
 			try:
 				self.mod_bsp_binary(bsp, add_f, del_f)
@@ -146,6 +188,7 @@ class flagger:
 				print('A BDSM error occured...')
 				print('Are you sure that the bsp is alright?')
 				print('Are you sure that the bsp is NOT compressed?')
+				# raise e
 
 
 
@@ -162,64 +205,69 @@ class flagger:
 		for add_flg in flgs_add:
 			current_flags |= add_flg
 
-		# return byte representation of the result
-		# return current_flags.to_bytes(4, sys.byteorder)
 		return current_flags
 
 
 	def mod_bsp_binary(self, bsp_path, add_flags=[flag_dict['No Minimum Mipmap']], remove_flags=[]):
+		# get all the VTF file offsets
 		with open(str(bsp_path), 'rb') as bsp:
 			# read the contents of the bsp
-			# todo: ram-efficient mode where it reads the file in chunks
 			bsp_content = bsp.read()
 
 			# lookup VTF offsets
 			vtf_offs = 0
-			# store tuples where:
-			# 0 = Flag offset of the VTF
-			# 1 = current flags as bytes
+
+			# store offsets of each VTF file
 			vtf_matches = []
 			while True:
 				try:
 					found = bsp_content.index('VTF\0'.encode(), vtf_offs, len(bsp_content))
-					# vtf_matches.append((found + 20, bsp_content[found+20:found+20+4]))
 					vtf_matches.append(found)
 					vtf_offs = found + 4
 				except:
 					break
 
-		# actually modify the file
+
+		# define the vtf structure to the required extent (hires format, everything after that is not needed)
+		vtf_struct = lightstruct(
+			signature =            (str, 4),
+			version =              (int, 2),
+			headerSize =           (int, 1),
+			width =                ('short', 1),
+			height =               ('short', 1),
+			flags =                (int, 1),
+			frames =               ('short', 1),
+			firstFrame =           ('short', 1),
+			padding0 =             (str, 4),
+			reflectivity =         (float, 3),
+			padding1 =             (str, 4),
+			bumpmapScale =         (float, 1),
+			highResImageFormat =   (int, 1)
+		)
+		vtf_struct.smart = True
+
+		# apply modifications
 		with open(str(bsp_path), 'r+b') as mod_bsp:
-			lstruct_ref = lightstruct(
-				mod_bsp,
-				signature =            (str, 4),
-				version =              (int, 2),
-				headerSize =           (int, 1),
-				width =                ('short', 1),
-				height =               ('short', 1),
-				flags =                (int, 1),
-				frames =               ('short', 1),
-				firstFrame =           ('short', 1),
-				padding0 =             (str, 4),
-				reflectivity =         (float, 3),
-				padding1 =             (str, 4),
-				bumpmapScale =         (float, 1),
-				highResImageFormat =   (int, 1)
-			)
+			# apply the vtf structure to the current file
+			mod_vtf,_ = vtf_struct.apply(mod_bsp)
+
+			# go through every VTF offset and do stuff with the VTF
 			for vtf_offs in vtf_matches:
-				# mod_bsp.seek(vtf_offs[0], 0)
-				# cur_flags = mod_bsp.read(4)
-				# mod_bsp.seek(vtf_offs[0], 0)
-				# mod_bsp.write(self.eval_flags(cur_flags, add_flags, remove_flags))
-				lstruct_ref.global_offs(vtf_offs)
-				cur_flags = lstruct_ref['flags'][0]
-				# only apply this to HDR vtfs which are also cubemaps
-				if lstruct_ref['highResImageFormat'][0] == 24 and self.eval_flags(cur_flags, [0x4000], []) == cur_flags or self.force_mod == True:
-					lstruct_ref['flags'] = (self.eval_flags(cur_flags, add_flags, remove_flags),)
+
+				mod_vtf.set_offset(vtf_offs)
+				cur_flags = mod_vtf['flags']
+
+				# Only apply this to HDR vtfs which are also cubemaps.
+
+				# The image format for HDR is RGBA16161616F and has an index of 24
+				# And the cubemap check is performed by checking whether the flag value changes when 0x4000 (Environment Map) flag is added
+				if (mod_vtf['highResImageFormat'] == 24 and self.eval_flags(cur_flags, [0x4000], []) == cur_flags) or self.force_mod == True:
+					# print('Modifying a VTF at offset', vtf_offs)
+					mod_vtf['flags'] = self.eval_flags(cur_flags, add_flags, remove_flags)
 
 
 	def set_progress(self, current, total):
-
+		# return
 		gui = 50
 
 		os.system('cls')
@@ -228,6 +276,7 @@ class flagger:
 
 		filled = int(gui * progress)
 		empty = int(gui - filled)
+		print(' Note: Modifying compressed bsp files may lead to data corruption!')
 		print('')
 		print(' BDSM Progress:')
 		print(f""" ►[{'█'*filled}{' '*empty}]◄ {current}/{total}""")

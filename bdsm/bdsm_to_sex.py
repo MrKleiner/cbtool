@@ -3,13 +3,13 @@ from pathlib import Path
 
 project = Path(__file__).parent.parent
 
-freshstruct = Path(r'E:\!webdesign\bootlegger\bootlegger\lightstruct.py')
+freshstruct = Path(r'E:\!webdesign\toybox_webtools\liz3_toybox_webtools\sex_toys\gigabin_py\lstruct.py')
 
 if freshstruct.is_file():
 	shutil.copyfile(str(freshstruct), str(project / 'bdsm' / 'lightstruct.py'))
 else:
 	from urllib.request import urlopen
-	with urlopen('https://raw.githubusercontent.com/MrKleiner/bootlegger/main/lightstruct.py') as response:
+	with urlopen('https://raw.githubusercontent.com/MrKleiner/bootlegger/main/lstruct.py') as response:
 	    litestruct = response.read()
 	    (project / 'bdsm' / 'lightstruct.py').write_bytes(litestruct)
 
