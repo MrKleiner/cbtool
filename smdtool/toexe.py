@@ -26,7 +26,7 @@ shutil.move(str(thisdir / 'dist' / 'smdt.exe'), str(thisdir / 'smdt.exe'))
 # delete shit
 shutil.rmtree(str(thisdir / 'build'))
 shutil.rmtree(str(thisdir / 'dist'))
-(thisdir / 'bdsm.spec').unlink(missing_ok=True)
+(thisdir / 'smdt.spec').unlink(missing_ok=True)
 
 
 
