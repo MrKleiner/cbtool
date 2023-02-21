@@ -37,9 +37,9 @@ The idea here is to hit the compile button, and leave for tea, or other tasks th
 Grab a snack! Do a few push ups! Touch grass! Start a fami-
 
 ### REQUIRED EXPERT MODE:
-* Add `-autocubemap` (Urban Chaos, Map Labs) or `-buildcubemaps` (All else) into parameters of $game_exe
+* Add `-autocubemap` (Urban Chaos, Map Labs) or `-buildcubemaps` (All else) into parameters of `$game_exe`
 
-* Click NEW, the "command" field is the full path to the bdsm_0.29.exe, with file itself included, 
+* Click NEW, the "command" field is the full path to the `bdsm_*.exe`, with file itself included, 
 the "parameter" field should have `"$bspdir\$file.$bsp"`.
 
 * Start compiling the map. The moment the VRAD is done, the game will open and compile the cubemaps for you. 
