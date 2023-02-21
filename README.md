@@ -22,15 +22,15 @@ There are two versions of the tool:
 ## HOW:
 
 * CBT: CuBemapTool
-The CuBemapTool is a GUI tool that let's you do exactly what is described above, to all .bsp files in a specified folder.
+  * The CuBemapTool is a GUI tool that let's you do exactly what is described above, to all .bsp files in a specified folder.
 Just open the cbt_0.22.exe, and then give it the path to a folder with the desired bsp files.
-Select the "No Minimal Mipmap" flag in the LEFT column, paste in the path 
+  * Select the "No Minimal Mipmap" flag in the LEFT column, paste in the path 
 (IMPORTANT: CTRL+V works only if the english keyboard is active),
 and press the "SEX!" button (yes, seriously).
-Wait until it finishes, observe the progress bar.
+  * Wait until it finishes, observe the progress bar.
 All affected BSP's should have a new "last modified" date on them.
 * BDSM: Better Dual Source Mapping (I have no clue, don't ask)
-The BDSM (tool) is exactly the same thing, except it's a command line version of the tool, 
+  * The BDSM (tool) is exactly the same thing, except it's a command line version of the tool, 
 that's injected into the hammer compile pipeline, as the very last thing (could also be used as a standalone tool).
 
 The idea here is to hit the compile button, and leave for tea, or other tasks that do not involve the devil's box.
